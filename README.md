@@ -1,66 +1,94 @@
-# CryptGuard File Vault Core
-A high-security Node.js backend for cryptographically storing, verifying, and tracking sensitive documents using PostgreSQL. 
+# 🛡️ CryptGuard File Vault Core
+**A High-Security, Cryptographically Auditable File Storage System**
 
-This project demonstrates the practical implementation of Confidentiality, Integrity, Authentication, and Non-Repudiation in a modern web service.
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-blue.svg)](https://www.postgresql.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Core Architecture Overview
-This backend does not rely on third-party cloud storage encryption. Instead, it securely encrypts documents locally in-flight before they are saved to disk. It uses strong Cryptography at every stage of the file's lifecycle.
-
-The system relies on a **Node.js (Express/NestJS)** API and a **PostgreSQL** database. The database never stores raw files; it stores the cryptographic keys and metadata necessary to manage the encrypted blobs.
-
----
-
-## The Cryptographic Lifecycle
-
-### Phase 1: Authentication (Argon2 / bcrypt)
-Before any file operations can occur, users must authenticate. 
-*   **The Technique:** We use a Key Derivation Function (KDF) like **Argon2** (or bcrypt) to hash user passwords before storing them in PostgreSQL. 
-*   **Why?** Cryptographically hashing with a random "salt" prevents attackers from guessing passwords using precomputed rainbow tables, even if the database is leaked.
-
-### Phase 2: File Upload & Confidentiality (AES-256-GCM)
-When an authorized user uploads a file, it must be protected from unauthorized reading.
-*   **The Technique:** **Symmetric Encryption (AES-GCM)**. 
-*   **How it works:** 
-    1. The server generates a unique, 256-bit random string (the **DEK** - Data Encryption Key).
-    2. Using Node's native `crypto.createCipheriv()`, the uploaded file stream is encrypted chunk-by-chunk using AES-256 in Galois/Counter Mode (GCM).
-    3. The encrypted file is saved to the disk.
-*   **Key Protection (The KEK):** We cannot store the DEK in plain text in the database! We use a master **Key Encryption Key (KEK)** stored in the `.env` file to encrypt the unique DEK before saving it to PostgreSQL.
-
-### Phase 3: Integrity & Tamper-Proofing (SHA-256 & ECDSA)
-We must mathematically prove the file has not been altered since it was uploaded.
-*   **The Technique:** **Cryptographic Hashing** and **Digital Signatures**.
-*   **How it works:**
-    1. After the file is fully encrypted and saved, the server calculates its **SHA-256 Hash** (producing a unique 64-character fingerprint of the encrypted file).
-    2. The server possesses a master Private/Public Key pair (using **ECDSA** - Elliptic Curve Digital Signature Algorithm).
-    3. The server uses its Private Key to "sign" the SHA-256 hash. 
-    4. This Digital Signature is stored within PostgreSQL.
-
-### Phase 4: Secure Download & Verification
-When a user requests to download a file, the system must authenticate them and verify the file's integrity before decryption.
-*   **How it works:**
-    1. **RBAC Check:** The database checks the user's `role_id`. If they are a "Guest", the request is immediately rejected (HTTP 403).
-    2. **Integrity Check:** The server recalculates the SHA-256 hash of the encrypted file sitting on the hard drive. It uses its **Public Key** to verify the Digital Signature in the database against this newly calculated hash. If they don't match, the file has been tampered with (HTTP 500/Alert).
-    3. **Decryption:** If verified, the server fetches the encrypted DEK from the database, decrypts it using the `.env` KEK, and then streams the file back through `crypto.createDecipheriv()` to the authorized user.
-
-### Phase 5: Tracking & Non-Repudiation (Steganography - Optional)
-To track leaks, we must know exactly who downloaded the file last.
-*   **The Technique:** **Cryptographic Watermarking / Steganography**.
-*   **How it works:** Before serving the decrypted file (e.g., a PDF) to the user, the server takes their User ID and a timestamp, encrypts that payload with a secondary AES key, and injects the encrypted payload into the PDF metadata or as hidden text. If the file leaks online, the admin can extract and decrypt the watermark to find the leaker.
+CryptGuard is a professional-grade backend specialized in the **Confidentiality, Integrity, and Availability** of digital assets. It performs on-the-fly streaming encryption using AES-256-GCM and creates an immutable chain of custody using ECDSA digital signatures.
 
 ---
 
-## Starting Fresh
+## 🚀 The "Security Proof" Demo
+This repository features a **Vanilla JS Demo Mode** designed to prove the security of data at rest. Authenticated users can decrypt their files, while unauthorized users are served raw, encrypted binary blobs.
 
-If you are building this from scratch, here is your implementation roadmap:
+### **Demo Personas:**
+- **👤 Pranav (Team Member):** Uploads sensitive files. Can download and decrypt his own files instantly using signature verification.
+- **👤 Akshit (Team Member):** Tries to access Pranav's files. The system refuses decryption and instead serves him a raw, garbled `.txt` file containing the AES cipher-text.
+- **🛡️ Saad (Master Admin):** Has global oversight. Can download and decrypt any file in the vault and view the full audit ledger.
 
-1.  **Initialize Project:** `npm init -y` and install Express, PostgreSQL driver (`pg`), and `multer` (for file uploads).
-2.  **Database Design:** Set up your PostgreSQL tables: `users`, `roles`, `documents` (storing `encrypted_dek`, `file_hash`, `signature`), and `audit_logs`.
-3.  **Authentication Layer:** Build the Argon2 login flow and JWT/Session generation.
-4.  **Encryption Pipeline:** Build an `/upload` endpoint that completely implements the AES-256-GCM streaming logic.
-5.  **Signature Pipeline:** Add the SHA-256 hashing and ECDSA signing logic immediately after the upload finishes.
-6.  **Decryption Pipeline:** Build the `/download` endpoint that verifies the signature, performs RBAC checks, decrypts the DEK, and streams the decrypted file to the user.
-7.  **(Optional) Watermarking Pipeline:** Implement PDF manipulation to inject encrypted user tracking metadata upon download.
+---
 
-## Requirements
-* Node.js v18+
-* PostgreSQL v14+
+## 🛠️ Tech Stack
+- **Backend:** Node.js (Express), TypeScript, Multer, Crypto.
+- **Database:** PostgreSQL (Relational metadata + Audit Ledger).
+- **Frontend:** Vanilla HTML5, CSS3, and JavaScript (Zero dependencies).
+- **Security:** AES-256-GCM (Cipher), ECDSA (Signatures), SHA-256 (Hashing), Argon2 (Passwords).
+
+---
+
+## ⚙️ Setup & Installation
+
+### 1. Prerequisite
+Ensure you have **PostgreSQL** running and create a database named `cryptdoc`.
+
+### 2. Environment Configuration
+Create a `.env` file in the root:
+```env
+PORT=3000
+DB_HOST=localhost
+DB_USER=your_user
+DB_PASSWORD=your_password
+DB_NAME=cryptdoc
+
+# Cryptographic Master Keys
+MASTER_KEK=generating...
+JWT_SECRET=generating...
+ECDSA_PRIVATE_KEY=generating...
+ECDSA_PUBLIC_KEY=generating...
+```
+
+### 3. Install & Initialize
+```bash
+npm install
+npm run migrate      # Create database tables
+npm run dev          # Start the backend server
+```
+
+### 4. Generate Keys & Seed Demo
+```bash
+npx tsx scripts/generate-keys.ts   # Populates .env with secure keys
+npx tsx src/db/seed-demo.ts        # Creates Pranav, Akshit, and Saad
+```
+
+---
+
+## 🖥️ Running the Demo
+1. Start the backend: `npm run dev` (Port 3000).
+2. Start the demo frontend:
+   ```bash
+   cd demo
+   python3 -m http.server 8000
+   ```
+3. Open **`http://localhost:8000`** in your browser.
+
+---
+
+## 🔒 Cryptographic Architecture
+
+### **Confidentiality (AES-256-GCM)**
+Every file is encrypted with a unique **Data Encryption Key (DEK)**. The DEK itself is never stored in plaintext; it is wrapped (encrypted) by a **Master Key Encryption Key (KEK)** before being saved to the database.
+
+### **Integrity (ECDSA + SHA-256)**
+Upon upload, the backend calculates a SHA-256 fingerprint of the encrypted file and signs it with the server's Private Key. During download, the server verifies the signature with its Public Key to ensure the file hasn't been tampered with on disk.
+
+### **Non-Repudiation (Audit Ledger)**
+Every interaction—whether a successful vaulting or a failed decryption attempt—is recorded in a permanent, auditable ledger within PostgreSQL.
+
+---
+
+## 📄 Documentation
+For the full technical breakdown, see the [Software Requirements Specification (SRS)](/SRS.md).
+
+---
+*Created for secure-first environments.*
