@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptGuard Core Demo</title>
+    <style>
+        :root {
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding-bottom: 4rem;
+        }
+
+        /* Navbar & Role Switcher */
+        .navbar {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .nav-brand {
+            font-weight: bold;
+            font-size: 1.25rem;
+        }
+
+        .role-switcher {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .role-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            background: var(--bg-main);
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+
+        .role-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-desc {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Upload Form */
+        .upload-group {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .file-input {
+            border: 1px solid var(--border);
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            flex: 1;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .btn-primary:active {
+            background: var(--primary-hover);
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+            text-align: left;
+        }
+
+        th {
+            background: var(--bg-main);
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td.mono {
+            font-family: monospace;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .btn-link {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .btn-link:hover {
+            text-decoration: underline;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge.success {
+            background: #d1fae5;
+            color: var(--success);
+        }
+
+        .badge.violation {
+            background: #fee2e2;
+            color: var(--danger);
+            outline: 1px solid var(--danger);
+        }
+
+        .badge.neutral {
+            background: #f1f5f9;
+            color: var(--text-muted);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--text-main);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-brand">CryptGuard Demo Mode</div>
+        <div class="role-switcher" id="roleSwitcher">
+            <span style="font-size: 0.875rem; color: var(--text-muted); margin-right: 0.5rem;">Simulate Identity:</span>
+            <!-- Buttons injected by JS -->
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+
+        <!-- Upload Mechanism -->
+        <div class="card">
+            <h2 class="card-title">Vault Upload</h2>
+            <p class="card-desc">Files are encrypted instantly via AES-256-GCM and digitally signed with ECDSA.</p>
+            <div class="upload-group">
+                <input type="file" id="fileInput" class="file-input">
+                <button class="btn-primary" onclick="uploadFile()">Encrypt & Store</button>
+            </div>
+        </div>
+
+        <!-- Document Global Vault -->
+        <div class="card">
+            <h2 class="card-title">Central Vault</h2>
+            <p class="card-desc">All files physically stored on disk. Decryption is restricted strictly to the original
+                uploader (or Master Admin).</p>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>Uploader ID</th>
+                            <th>SHA-256 Hash</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="documentsTable">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Audit Ledger -->
+        <div class="card">
+            <h2 class="card-title">Immutable Audit Ledger</h2>
+            <p class="card-desc">Detailed logs of all interactions. Notice unauthorized downloads resulting in encrypted
+                blobs.</p>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Agent</th>
+                            <th>File Target</th>
+                            <th>Status Result</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditTable">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+
+        // --- Mock Identities ---
+        // We bypass JWT and inject exactly who we want to be into the headers.
+        const mockUsers = [
+            { id: '11111111-1111-4111-8111-111111111111', username: 'Pranav', role: 'Team Member' },
+            { id: '22222222-2222-4222-8222-222222222222', username: 'Akshit', role: 'Team Member' },
+            { id: '33333333-3333-4333-8333-333333333333', username: 'Saad (Admin)', role: 'Master Admin' }
+        ];
+
+        let currentUser = mockUsers[0]; // Default to Alice
+
+        // --- UI Rendering ---
+        function renderRoleSwitcher() {
+            const container = document.getElementById('roleSwitcher');
+            container.innerHTML = '<span style="font-size: 0.875rem; color: var(--text-muted); margin-right: 0.5rem;">Simulate Identity:</span>';
+            mockUsers.forEach(user => {
+                const btn = document.createElement('button');
+                btn.className = `role-btn ${currentUser.id === user.id ? 'active' : ''}`;
+                btn.innerText = user.username;
+                btn.onclick = () => {
+                    currentUser = user;
+                    renderRoleSwitcher();
+                    showToast(`Switched identity to ${user.username}`);
+                    fetchDocuments();
+                    fetchAuditLogs();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // --- API Helpers ---
+        function getHeaders() {
+            return {
+                'x-mock-user-id': currentUser.id,
+                'x-mock-username': currentUser.username,
+                'x-mock-role': currentUser.role
+            };
+        }
+
+        // --- Core Functions ---
+        async function fetchDocuments() {
+            try {
+                const res = await fetch(`${API_URL}/documents`, { headers: getHeaders() });
+                const data = await res.json();
+                const tbody = document.getElementById('documentsTable');
+                tbody.innerHTML = '';
+
+                if (!data.documents || data.documents.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#64748b;">Vault is empty.</td></tr>';
+                    return;
+                }
+
+                data.documents.forEach(doc => {
+                    const row = `
+                        <tr>
+                            <td>${doc.original_filename}</td>
+                            <td class="mono" title="${doc.uploaded_by}">${doc.uploaded_by.substring(0, 8)}...</td>
+                            <td class="mono">${doc.file_hash.substring(0, 16)}...</td>
+                            <td>
+                                <button class="btn-link" onclick="downloadFile('${doc.id}', '${doc.original_filename}')">
+                                    Fetch Document
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function fetchAuditLogs() {
+            try {
+                const res = await fetch(`${API_URL}/documents/audit`, { headers: getHeaders() });
+                const data = await res.json();
+                const tbody = document.getElementById('auditTable');
+                tbody.innerHTML = '';
+
+                if (!data.logs || data.logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#64748b;">Ledger is empty.</td></tr>';
+                    return;
+                }
+
+                data.logs.forEach(log => {
+                    let badgeClass = 'neutral';
+                    if (log.status.includes('SUCCESS')) badgeClass = 'success';
+                    if (log.status.includes('VIOLATION')) badgeClass = 'violation';
+
+                    const row = `
+                        <tr>
+                            <td style="color:#64748b; font-size:0.8rem;">${new Date(log.created_at).toLocaleTimeString()}</td>
+                            <td style="font-weight: 500;">${log.username || 'System'}</td>
+                            <td>${log.original_filename || '-'}</td>
+                            <td>
+                                <span class="badge ${badgeClass}">${log.status}</span>
+                                <div style="font-size:0.7rem; color:#94a3b8; margin-top:2px;">${log.action}</div>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function uploadFile() {
+            const input = document.getElementById('fileInput');
+            if (input.files.length === 0) return;
+
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+
+            const btn = document.querySelector('.btn-primary');
+            btn.innerText = "Encrypting...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_URL}/documents/upload`, {
+                    method: 'POST',
+                    headers: getHeaders(), // Don't set Content-Type, FormData handles the boundary
+                    body: formData
+                });
+
+                if (res.ok) {
+                    showToast('File cryptographically vaulted.');
+                    input.value = '';
+                    fetchDocuments();
+                    fetchAuditLogs();
+                } else {
+                    const data = await res.json();
+                    showToast('Upload failed: ' + data.error);
+                }
+            } catch (e) {
+                showToast('Network error during upload.');
+            } finally {
+                btn.innerText = "Encrypt & Store";
+                btn.disabled = false;
+            }
+        }
+
+        async function downloadFile(docId, originalName) {
+            try {
+                showToast('Interrogating Vault...');
+                const res = await fetch(`${API_URL}/documents/${docId}/download`, {
+                    headers: getHeaders()
+                });
+
+                // The backend decides whether to stream the Decrypted file or the Encrypted Blob
+                // based on the x-mock-user-id header. We just blindly download what it gives us.
+
+                const blob = await res.blob();
+
+                // Get filename from Content-Disposition if present
+                // We MUST catch the case where the backend renamed it to .txt
+                let filename = originalName;
+                const disposition = res.headers.get('content-disposition');
+                if (disposition && disposition.includes('filename="')) {
+                    filename = disposition.split('filename="')[1].split('"')[0];
+                }
+
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+
+                if (filename.includes('ENCRYPTED_') || filename.endsWith('.txt')) {
+                    showToast(`SECURITY: Encrypted Content Intercepted as "${filename}"`);
+                } else {
+                    showToast('Signature Verified. File Decrypted.');
+                }
+
+                fetchAuditLogs(); // Update ledger to show what happened
+
+            } catch (e) {
+                showToast('Failed to establish secure download stream.');
+            }
+        }
+
+        // Initialize
+        renderRoleSwitcher();
+        fetchDocuments();
+        fetchAuditLogs();
+
+        // Auto-refresh ledger every 5 seconds (useful if another browser window does something)
+        setInterval(fetchAuditLogs, 5000);
+
+    </script>
+</body>
+
+</html>
