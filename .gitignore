@@ -20,6 +20,7 @@ Thumbs.db
 # Project Specific
 uploads/
 /demo/test_file.txt
+presentation_script.txt
 
 # Editor / IDE
 .vscode/
